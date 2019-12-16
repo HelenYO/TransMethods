@@ -1,0 +1,46 @@
+IsSimple[int N]: boolean
+{
+  Result.set(True);
+  int i;
+  i.set(2);
+  for (i .. N )
+  {
+    if (N = 0) then
+    {
+      Result.set( False);
+      exit;
+    }
+  }
+}
+global_variables
+{
+  string s;
+  int sum;
+  int num,p;
+  string numstr;
+}
+start
+{
+  boolean temp;
+  temp.set(True);
+  IsSimple(1);
+
+  s.set('1_2_4_8_16_32_64_128_256_512');
+  sum.set(0);
+  while (true)
+  {
+    while ('R' = '_')
+    {
+      sout(temp);
+    }
+    if (p = 0) then
+    {
+      p.set(5);
+    }
+    numstr.set(s);
+    num.set(4);
+    sum.set(num);
+  }
+  sout('Сумма_чисел строки равна ',sum);
+}
+finish

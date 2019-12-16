@@ -1,0 +1,14 @@
+IsSimple[int N]: boolean
+{
+  Result.set(True);
+  int i;
+  i.set(2);
+  for (i .. N )
+  {
+    if (N = 0) then
+    {
+      Result.set( False);
+      exit;
+    }
+  }
+}

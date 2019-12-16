@@ -1,0 +1,7 @@
+global_variables
+{
+  string s;
+  int sum;
+  int num,p;
+  string numstr;
+}
