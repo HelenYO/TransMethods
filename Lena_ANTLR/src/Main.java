@@ -15,15 +15,5 @@ public class Main {
         TokenStream tokens = new CommonTokenStream(lexer);
         perfectLParser parser = new perfectLParser(tokens);
         parser.program();
-        //
-//        if($typeIdentifier == nullptr) {
-//            System.out.println("void ");
-//        } else {
-//            System.out.println($typeIdentifier.text + " ");
-//        }
-//        System.out.println($name_func.text + "(");
-//        for (int i = 0; i < $formalParameterList.size();i++) {
-//
-//        }
     }
 }

@@ -4,89 +4,128 @@ options {
     language = Java;
 }
 
-@header {
-    import java.math.*;
-    import java.util.HashMap;
-    import java.util.Map;
+@members {
+    String indent = "";
 }
 
 program
-  : (func_vars_main_block)+
+  : {System.out.print("#include <iostream>\n#include <cmath>\n#include <string>\n\nusing namespace std;\n");}(func_vars_main_block)+
   ;
 
 WS: [ \n\t\r]+ -> skip;
 
 func_vars_main_block
-//  : FUNC name_func LBRACK (formalParameterList)? RBRACK (COLON typeIdentifier)? LCURLY block RCURLY
-: GLOBAL_VARIABLES LCURLY block RCURLY
-//  | START LCURLY block RCURLY FINISH
-//  | name_func LBRACK (formalParameterList)? RBRACK (COLON typeIdentifier)? LCURLY block RCURLY
-//  {
-//    System.out.println($formalParameterList.ret);
-//  }
+  : GLOBAL_VARIABLES LCURLY (plain_initialization {System.out.print("\n" + $plain_initialization.ret);}| initialization{System.out.print("\n" + $initialization.ret);})* RCURLY
+  | START LCURLY block RCURLY FINISH {
+    System.out.print("\n\nint main() {" + $block.ret + "\n}");
+  }
+  | {String local = "EE";} name_func LBRACK (formalParameterList)? RBRACK ( COLON {local = "NO";}typeIdentifier)? LCURLY block RCURLY {
+    if (local.equals("EE")) {
+      System.out.print("\nvoid ");
+    } else {
+      System.out.print("\n" + $typeIdentifier.ret + " ");
+    }
+    System.out.print($name_func.text + "(");
+    System.out.print($formalParameterList.ret);
+    System.out.print(") {");
+    System.out.print( "  " + $block.ret  + "\n}\n");
+  }
   ;
 
 formalParameterList returns [String ret = ""]
   : formalParameterSection {
-    $ret += $formalParameterSection.text;
+    $ret += $formalParameterSection.ret;
   }
   (COMMA formalParameterSection {
     $ret += ", ";
-    $ret += $formalParameterSection.text;
+    $ret += $formalParameterSection.ret;
   })*
   ;
 
-typeIdentifier
-  : (CHAR | BOOLEAN | INT | STRING)
+typeIdentifier returns [String ret]
+  : (CHAR {$ret = "char";}| BOOLEAN {$ret = "bool";}| INT {$ret = "int";}| STRING {$ret = "string";})
   ;
 
 name_func
   : IDENT
   ;
 
-formalParameterSection
-  : typeIdentifier IDENT
+formalParameterSection returns [String ret = ""]
+  : typeIdentifier IDENT {
+    $ret += $typeIdentifier.ret + " " + $IDENT.text;
+  }
+  ;
+//indent += "    ";
+//indent = indent.substring(0, indent.length() - 4);
+block returns [String ret = ""]
+  : {indent += "    ";}(plain_initialization {
+  $ret += $plain_initialization.ret;
+  }
+  | initialization {$ret += $initialization.ret;}
+  | for_structure {$ret += $for_structure.ret;}
+  | if_structure {$ret += $if_structure.ret;}
+  | EXIT SEMI {$ret += ( "\n" + indent + "break;");}
+  | while_structure {$ret += $while_structure.ret;}
+  | SOUT LPAREN expression {$ret += "\n" + indent + "cout << " + $expression.ret;}(COMMA expression{$ret += " << " + $expression.ret;})* RPAREN SEMI {
+    $ret += ";";
+  }
+  | run_func {$ret += $run_func.ret;})*
+  {indent = indent.substring(0, indent.length() - 4);}
   ;
 
-block
-  : (plain_initialization
-  | initialization
-  | for_structure
-  | if_structure
-  | EXIT SEMI
-  | while_structure
-  | run_func)*
+
+plain_initialization returns [String ret = ""]
+  : formalParameterList SEMI {
+    $ret = "\n" + indent + $formalParameterList.ret + ";";
+  }
+  | typeIdentifier {$ret = "\n" + indent + $typeIdentifier.ret + " ";} IDENT {$ret += $IDENT.text;} (COMMA IDENT{$ret = $ret + ", " + $IDENT.text;})* SEMI {$ret += ";";}
   ;
 
-
-plain_initialization
-  : formalParameterList SEMI
-  | typeIdentifier IDENT (COMMA IDENT)* SEMI
+initialization returns [String ret = ""]
+  : IDENT DOT INIT LPAREN expression RPAREN SEMI {$ret = "\n" + indent + $IDENT.text + " = " + $expression.ret + ";";}
   ;
 
-initialization
-  : IDENT DOT INIT LPAREN expression RPAREN SEMI
+for_structure returns [String ret = ""]
+  : FOR LPAREN IDENT DOTDOT expression RPAREN LCURLY block RCURLY {
+    $ret = "\n" + indent +"for (" + $IDENT.text + " <= " + $expression.ret + "; " + $IDENT.text + "++) {" + $block.ret + "\n" + indent + "}";}
   ;
 
-for_structure
-  : FOR LPAREN IDENT DOTDOT expression RPAREN LCURLY block RCURLY
+if_structure returns [String ret = ""]
+  : IF LPAREN expression {$ret = "\n" + indent + "if (" + $expression.ret;} (EQUAL{$ret += " == ";}|NOT_EQUAL{$ret += " != ";}|LT{$ret += " < ";}|LE{$ret += " <= ";}|GE {$ret += " >= ";}|GT {$ret += " > ";}) expression RPAREN THEN LCURLY block RCURLY {
+    $ret += ($expression.ret + ") {" + $block.ret + "\n" + indent + "}");
+  }
   ;
 
-if_structure
-  : IF LPAREN expression EQUAL expression RPAREN THEN LCURLY block RCURLY
+while_structure returns [String ret = ""]
+  : WHILE LPAREN ((expression {$ret = "\n" + indent + "while (" + $expression.ret;}(EQUAL{$ret += " == ";}|NOT_EQUAL{$ret += " != ";}|LT{$ret += " < ";}|LE{$ret += " <= ";}|GE {$ret += " >= ";}|GT {$ret += " > ";})expression{$ret += ($expression.ret + ") {");}) | expression {$ret = "\n" + indent + "while (" + $expression.ret + ") {";}) RPAREN LCURLY block RCURLY {
+    $ret += ($block.ret + "\n" + indent + "}");
+  }
   ;
 
-while_structure
-  : WHILE LPAREN ((expression (EQUAL|NOT_EQUAL|LT|LE|GE|GT)expression) | expression) RPAREN LCURLY block RCURLY
+run_func returns [String ret = ""]
+  : name_func {$ret = "\n" + indent + $name_func.text + "(";}LPAREN (expression {$ret += $expression.ret;}(COMMA expression{$ret += (", " + $expression.ret);})*)? RPAREN SEMI {
+    $ret += ");";
+  }
   ;
 
-run_func
-  : name_func LPAREN (expression (COMMA expression)*)? RPAREN SEMI
+expression returns [String ret = ""]
+  : IDENT {$ret = $IDENT.text;}
+  | STRING_LITERAL {
+    String temp = "\"" + ($STRING_LITERAL.text).substring(1, $STRING_LITERAL.text.length() - 1) + "\"";
+    if($STRING_LITERAL.text.length() == 3) {
+      $ret = $STRING_LITERAL.text;
+    } else {
+      $ret = temp;
+    }
+  }
+  | NUM_INT {$ret = $NUM_INT.text;}
+  | TRUE {$ret = "true";}
+  | FALSE{$ret = "false";}
   ;
 
-expression
-  : IDENT | STRING_LITERAL | NUM_INT | TRUE | FALSE
-  ;
+  SOUT
+     : S O U T
+     ;
 
   STRING
      : S T R I N G
@@ -112,14 +151,9 @@ expression
      : F A L S E
      ;
 
-  STRING_LITERAL
-     : '\'' ('\'\'' | ~ ('\''))* '\''
+  GLOBAL_VARIABLES
+     : G L O B A L UNDERSCORE V A R I A B L E S
      ;
-
-  NUM_INT
-     : ('0' .. '9') +
-     ;
-
 
   THEN
     : T H E N
@@ -145,25 +179,28 @@ expression
      : S E T
      ;
 
+   FUNC
+       : F U N C
+       ;
+
+    START
+       : S T A R T
+       ;
+
+    FINISH
+       : F I N I S H
+       ;
+
+       STRING_LITERAL
+            : '\'' ('\'\'' | ~ ('\''))* '\''
+            ;
+
+         NUM_INT
+            : ('0' .. '9') +
+            ;
+
   IDENT
      : ('a' .. 'z' | 'A' .. 'Z') ('a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_')*
-     ;
-
-  FUNC
-     : F U N C
-     ;
-
-  GLOBAL_VARIABLES
-     : G L O B A L UNDERSCORE V A R I A B L E S
-     | 'global_variables'
-     ;
-
-  START
-     : S T A R T
-     ;
-
-  FINISH
-     : F I N I S H
      ;
 
   UNDERSCORE
