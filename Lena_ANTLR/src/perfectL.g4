@@ -9,7 +9,7 @@ options {
 }
 
 program
-  : {System.out.print("#include <iostream>\n#include <cmath>\n#include <string>\n\nusing namespace std;\n");}(func_vars_main_block)+
+  : {System.out.print("#include <iostream>\n#include <cmath>\n#include <string>\n#include <vector>\n\nusing namespace std;\n");}(func_vars_main_block)+
   ;
 
 WS: [ \n\t\r]+ -> skip;
@@ -52,7 +52,10 @@ name_func
 
 formalParameterSection returns [String ret = ""]
   : typeIdentifier IDENT {
-    $ret += $typeIdentifier.ret + " " + $IDENT.text;
+    $ret = $typeIdentifier.ret + " " + $IDENT.text;
+  }
+  | typeIdentifier LBRACK RBRACK IDENT {
+    $ret = "vector<" + $typeIdentifier.ret + "> " + $IDENT.text;
   }
   ;
 //indent += "    ";
@@ -83,14 +86,19 @@ plain_initialization returns [String ret = ""]
 
 initialization returns [String ret = ""]
   : IDENT DOT INIT LPAREN expression RPAREN SEMI {$ret = "\n" + indent + $IDENT.text + " = " + $expression.ret + ";";}
+  | IDENT DOT INIT LPAREN LCURLY {$ret = "\n" + indent + $IDENT.text + " = {";} expression {$ret += $expression.ret;}(COMMA expression{$ret += ", " + $expression.ret;})* RCURLY RPAREN SEMI {
+    $ret += "};";
+  }
   ;
 
 for_structure returns [String ret = ""]
   : FOR LPAREN IDENT DOTDOT expression RPAREN LCURLY block RCURLY {
     $ret = "\n" + indent +"for (" + $IDENT.text + " <= " + $expression.ret + "; " + $IDENT.text + "++) {" + $block.ret + "\n" + indent + "}";}
+  | FOR LPAREN IDENT DOWN expression RPAREN LCURLY block RCURLY {
+        $ret = "\n" + indent +"for (" + $IDENT.text + " >= " + $expression.ret + "; " + $IDENT.text + "--) {" + $block.ret + "\n" + indent + "}";}
   ;
 
-if_structure returns [String ret = ""]
+if_structure returns [String ret = ""]//TODO:: where is 'else'?
   : IF LPAREN expression {$ret = "\n" + indent + "if (" + $expression.ret;} (EQUAL{$ret += " == ";}|NOT_EQUAL{$ret += " != ";}|LT{$ret += " < ";}|LE{$ret += " <= ";}|GE {$ret += " >= ";}|GT {$ret += " > ";}) expression RPAREN THEN LCURLY block RCURLY {
     $ret += ($expression.ret + ") {" + $block.ret + "\n" + indent + "}");
   }
@@ -121,7 +129,12 @@ expression returns [String ret = ""]
   | NUM_INT {$ret = $NUM_INT.text;}
   | TRUE {$ret = "true";}
   | FALSE{$ret = "false";}
+  | LCURLY
   ;
+
+  DOWN
+     : D O W N
+     ;
 
   SOUT
      : S O U T

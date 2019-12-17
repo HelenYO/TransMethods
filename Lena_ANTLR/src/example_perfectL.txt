@@ -1,5 +1,10 @@
+nothing [string s, int a] {
+  doSMTH(5);
+}
+
 IsSimple[int N]: boolean
 {
+  boolean Result;
   Result.set(True);
   int i;
   i.set(2);
@@ -24,6 +29,19 @@ start
   boolean temp;
   temp.set(True);
   IsSimple(1);
+  int[] mass;
+  int[] pass;
+  pass.set({1,2,3,4});
+  mass.set(pass);
+
+  for (i down N )
+      {
+        if (N = 0) then
+        {
+          Result.set( False);
+          exit;
+        }
+      }
 
   s.set('1_2_4_8_16_32_64_128_256_512');
   sum.set(0);
